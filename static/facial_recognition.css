@@ -1,0 +1,33 @@
+/* Flexbox container to align image and emotion side by side */
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Style for the video container to ensure it displays properly */
+.video-container {
+    flex: 1;  /* Make the video container flexible */
+    width: 60%;  /* You can adjust the width based on your design */
+    height: auto;
+    border: 2px solid #ccc;
+    background-color: #000;  /* Optional: to give a black background */
+}
+
+.video-container img {
+    width: 100%; /* Make the image fill the container's width */
+    height: auto;
+    display: block;  /* Ensures no unwanted spaces below the image */
+}
+
+/* Style for the emotion */
+.emotion-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding-left: 20px;
+}

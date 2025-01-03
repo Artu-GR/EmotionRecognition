@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Emotion Analysis</title>
+</head>
+<body>
+    <h1>Audio Emotion Analysis</h1>
+    <button onclick="analyzeAudio()">Start Listening</button>
+    <p id="result"></p>
+
+    <button id="StopRecording" onclick="stopRecording()">Stop recording</button>
+
+    <script>
+        let micIsOpen = false;
+
+        async function analyzeAudio() {
+            micIsOpen = true;
+            const response = await fetch('/audio_analysis', { method: 'POST' });
+            const data = await response.json();
+            document.getElementById('result').innerText = `Recognized Speech: ${data.speech}`;
+        }
+
+        function stopRecording() {
+            fetch('/stop-mic');
+            micIsOpen = false;
+        }
+    </script>
+</body>
+</html>

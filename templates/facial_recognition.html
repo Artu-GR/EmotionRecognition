@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Camera Feed</title>
+
+    <link rel="stylesheet" href="static/facial_recognition.css" type="text/css">
+
+    <script>
+        function fetchCurrentEmotion() {
+            fetch('/emotion-fetch')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('emotion').innerHTML = "Dominant emotion: " + data.emotion;
+                    document.getElementById('emoji').src = "/static/emotes/" + data.emotion + ".png";
+                })
+                .catch(error => console.error('Error fetching emotion: ', error));
+        }
+        setInterval(fetchCurrentEmotion, 1000);  // Update emotion every 2 seconds
+
+        // Release camera when leaving the tab
+        window.addEventListener('unload', () => {
+            navigator.sendBeacon('/release_camera');
+        });
+    </script>
+
+</head>
+<body>
+
+    <h1>Live Camera Feed</h1>
+
+    <div class="container">
+        <!-- Video feed from the camera inside a div container -->
+        <div class="video-container">
+            <img src="{{ url_for('video_feed') }}" />
+        </div>
+
+        <!-- Emotion text on the right -->
+        <div class="emotion-container">
+            <h3 id="emotion">Dominant emotion: Analyzing...</h3>
+            <img id="emoji" src="" width="15%" height="auto"/>
+        </div>
+    </div>
+
+    <button onclick="window.location.href='/'">Go back</button>
+
+</body>
+</html>
