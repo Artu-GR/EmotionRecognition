@@ -1,4 +1,7 @@
 import speech_recognition as sr
+from transformers import pipeline
+import librosa
+import numpy as np
 import threading
 
 class SpeechRecognition:
@@ -9,6 +12,7 @@ class SpeechRecognition:
         self.running = False
         self.lock = threading.Lock()
         self.thread = None
+        self.audio = None
 
     def start_listening(self):
         """Start background listening for speech."""
@@ -18,8 +22,8 @@ class SpeechRecognition:
                 print("[AudioRecognition] Listening started...")
                 while self.running:
                     try:
-                        audio = self.recognizer.listen(source, timeout=5)
-                        text = self.recognizer.recognize_google(audio)
+                        self.audio = self.recognizer.listen(source, timeout=5)
+                        text = self.recognizer.recognize_google(self.audio)
                         with self.lock:
                             self.speech = text
                         print(f"[AudioRecognition] Recognized: {text}")
@@ -50,6 +54,17 @@ class SpeechRecognition:
         """Get the latest recognized text."""
         with self.lock:
             return self.speech
+        
+    # def analyze_speech(self):
+    #     speech_emotion = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion")
+    #     text_result = speech_emotion(self.speech)
+    #     print("Emotion: ", text_result[0]['label'])
+    #     return text_result[0]['label'], text_result[0]['score']
+
+    # def audio_features(self): #FOR EMOTION ANALYSIS PURPOSES
+    #     mfcc = librosa.feature.mfcc(y=self.audio, n_mfcc = 13)
+    #     feature_vector = np.mean(mfcc.T, axis=0)
+    #     return feature_vector
     
-    def analyse_audio(): #FOR EMOTION ANALYSIS PURPOSES
-        pass
+    # def _analyze(self):
+    #     speech_emotion, confidence_speech = self.analyze_speech()
