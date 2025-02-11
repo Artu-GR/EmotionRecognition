@@ -3,9 +3,11 @@ from transformers import pipeline
 import librosa
 import numpy as np
 import threading
+from tf_keras import models
 
 class SpeechRecognition:
     def __init__(self):
+        self.model = models.load_model('./models/emotion_model.h5')
         self.recognizer = sr.Recognizer()
         self.mic = sr.Microphone()
         self.speech = ""
@@ -13,6 +15,12 @@ class SpeechRecognition:
         self.lock = threading.Lock()
         self.thread = None
         self.audio = None
+        self.emotion = 'neutral'
+
+    def _update_speech(self, text):
+        with self.lock:
+            self.speech = text
+            print(f"[AudioRecognition] Recognized: {text}")
 
     def start_listening(self):
         """Start background listening for speech."""
@@ -23,10 +31,8 @@ class SpeechRecognition:
                 while self.running:
                     try:
                         self.audio = self.recognizer.listen(source, timeout=5)
-                        text = self.recognizer.recognize_google(self.audio)
-                        with self.lock:
-                            self.speech = text
-                        print(f"[AudioRecognition] Recognized: {text}")
+                        text = self.recognizer.recognize_google(self.audio, language='es-ES')
+                        self._update_speech(text)
                     except sr.UnknownValueError:
                         print("[AudioRecognition] Could not understand audio.")
                     except sr.RequestError as e:
@@ -37,7 +43,7 @@ class SpeechRecognition:
         if not self.running:
             self.running = True
             self.thread = threading.Thread(target=listen)
-            #self.thread.daemon = True
+            self.thread.daemon = True
             self.thread.start()
 
     def stop_listening(self):
@@ -47,24 +53,26 @@ class SpeechRecognition:
             if self.thread and self.thread.is_alive():
                 self.thread.join()
             print("[AudioRecognition] Listening stopped.")
+            
         else:
             print("[AudioRecognition] Listening is not active.")
 
     def get_recognized_text(self):
         """Get the latest recognized text."""
         with self.lock:
-            return self.speech
-        
-    # def analyze_speech(self):
-    #     speech_emotion = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion")
-    #     text_result = speech_emotion(self.speech)
-    #     print("Emotion: ", text_result[0]['label'])
-    #     return text_result[0]['label'], text_result[0]['score']
+            if self.speech != "":
+                yield self.speech
 
-    # def audio_features(self): #FOR EMOTION ANALYSIS PURPOSES
-    #     mfcc = librosa.feature.mfcc(y=self.audio, n_mfcc = 13)
-    #     feature_vector = np.mean(mfcc.T, axis=0)
-    #     return feature_vector
-    
-    # def _analyze(self):
-    #     speech_emotion, confidence_speech = self.analyze_speech()
+    def get_emotion(self):
+        features = self._extract_features()
+        features = np.expand_dims(features, axis=0)
+        pred = self.model.predict(features)
+        emotion = np.argmax(pred)
+        self.emotion = str(emotion)
+
+    def _extract_features(self):
+        audio_array = np.frombuffer(self.audio.get_wav_data(), dtype=np.int16)
+        audio_array = audio_array.astype(np.float32) / np.max(np.abs(audio_array))
+
+        mfcc = librosa.feature.mfcc(y=audio_array, sr=22050, n_mfcc=59)
+        return np.mean(mfcc.T, axis=0)

@@ -6,24 +6,59 @@
 </head>
 <body>
     <h1>Audio Emotion Analysis</h1>
-    <button onclick="analyzeAudio()">Start Listening</button>
-    <p id="result"></p>
-
+    <button onclick="startListening()">Start Listening</button>
     <button id="StopRecording" onclick="stopRecording()">Stop recording</button>
+    <p id="result">Waiting for speech...</p>
+    <p id="emotion"></p>
 
     <script>
         let micIsOpen = false;
+        let eventSource;
 
-        async function analyzeAudio() {
+        // Start listening and stream the recognized speech in real-time
+        function startListening() {
             micIsOpen = true;
-            const response = await fetch('/audio_analysis', { method: 'POST' });
-            const data = await response.json();
-            document.getElementById('result').innerText = `Recognized Speech: ${data.speech}`;
+            document.getElementById("result").innerText = "Listening...";
+
+            // Open the SSE connection to the Flask endpoint
+            eventSource = new EventSource('/audio_analysis');
+
+            eventSource.onmessage = function(event) {
+                // Append new recognized speech to the existing text
+                document.getElementById('result').innerText += ` ${event.data}`;
+            };
+
+            eventSource.onerror = function() {
+                document.getElementById('result').innerText = "Error in streaming speech.";
+            };
         }
 
+        // Stop the listening and close the connection
         function stopRecording() {
-            fetch('/stop-mic');
-            micIsOpen = false;
+            if (eventSource) {
+                eventSource.close(); // Close the SSE connection
+                fetch('/stop-mic'); // Stop the microphone on the server-side
+                micIsOpen = false;
+
+                fetch('/get_full_speech')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('result').innerText +=  ` ${data.speech}`;
+                    })
+                    .catch(error => console.error("Error fetching full speech: ", error));
+
+                get_emotion()
+                //document.getElementById("result").innerText += " \nMicrophone stopped."; // Append "Microphone stopped" to the text
+            }
+        }
+
+        function get_emotion() {
+            fetch('/get-speech-emotion')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('emotion').innerText = data.emotion;
+                })
+                .catch(error => console.error("Error fetching emotion: ", error))
         }
     </script>
 </body>
